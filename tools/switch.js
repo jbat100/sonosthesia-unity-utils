@@ -8,7 +8,8 @@ let packages = {
     "com.sonosthesia.spawn" : "sonosthesia-unity-spawn",
     "com.sonosthesia.vfx" : "sonosthesia-unity-vfx",
     "com.sonosthesia.link" : "sonosthesia-unity-link",
-    "com.sonosthesia.flow" : "sonosthesia-unity-flow"
+    "com.sonosthesia.flow" : "sonosthesia-unity-flow",
+    "com.sonosthesia.utils" : "sonosthesia-unity-utils"
 }
 
 function switchToLocal(repository, package) {
@@ -27,7 +28,7 @@ function switchToLocal(repository, package) {
             continue
         }
         console.log("processing " + dependency)
-        unityJSON.dependencies[dependency] = path.join(__dirname, "..", "..", packages[dependency], dependency)
+        unityJSON.dependencies[dependency] = "file:" + path.join(__dirname, "..", "..", packages[dependency], dependency)
     }
     console.log(unityJSON)
     fs.writeFileSync(unityPath, JSON.stringify(unityJSON, null, 2))

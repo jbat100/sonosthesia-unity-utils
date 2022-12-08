@@ -1,12 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Sonosthesia.Utils
 {
     public static class GameObjectExtensions
     {
-
         public static T GetOrAddComponent<T>(this MonoBehaviour monoBehaviour) where T : MonoBehaviour
         {
             T result = monoBehaviour.GetComponent<T>();
@@ -14,7 +11,6 @@ namespace Sonosthesia.Utils
             {
                 result = monoBehaviour.gameObject.AddComponent<T>();
             }
-
             return result;
         }
     }    

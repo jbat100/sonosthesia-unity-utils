@@ -1,7 +1,6 @@
-using Sonosthesia.Utils;
 using UnityEngine;
 
-namespace Sonosthesia
+namespace Sonosthesia.Utils
 {
     public abstract class Path : MonoBehaviour
     {

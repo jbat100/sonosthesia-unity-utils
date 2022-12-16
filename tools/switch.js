@@ -6,6 +6,7 @@ let packages = {
     "com.sonosthesia.adaptivemidi" : "sonosthesia-unity-adaptivemidi",
     "com.sonosthesia.spawn" : "sonosthesia-unity-flow",
     "com.sonosthesia.midi" : "sonosthesia-unity-midi",
+    "com.sonosthesia.rtmidi" : "sonosthesia-unity-rtmidi",
     "com.sonosthesia.spawn" : "sonosthesia-unity-spawn",
     "com.sonosthesia.vfx" : "sonosthesia-unity-vfx",
     "com.sonosthesia.link" : "sonosthesia-unity-link",
@@ -13,8 +14,33 @@ let packages = {
     "com.sonosthesia.utils" : "sonosthesia-unity-utils"
 }
 
-function linkPackage(repository, package) {
-    let repositoryPath = path.join(__dirname, "..", "..", repository)
+// memoize
+let dependencyCache = {}
+function getDependencies(package) {
+    if (package in dependencyCache) {
+        return dependencyCache[package]
+    }
+    let repositoryPath = path.join(__dirname, "..", "..", packages[package])
+    let packagePath = path.join(repositoryPath, package, "package.json")
+    let dependencies = new Set()
+    if (fs.existsSync(packagePath)) {
+        let packageJSON = JSON.parse(fs.readFileSync(packagePath));
+        for (const [dependency, version] of Object.entries(packageJSON.dependencies)) {
+            if (!dependency.startsWith("com.sonosthesia")) {
+                continue
+            }
+            dependencies.add(dependency)
+            for (const child of getDependencies(dependency)) {
+                dependencies.add(child)
+            }
+        }
+    }
+    dependencyCache[package] = Array.from(dependencies)
+    return dependencyCache[package]
+}
+
+function linkPackage(package) {
+    let repositoryPath = path.join(__dirname, "..", "..", packages[package])
     let packagePath = path.join(repositoryPath, package, "package.json")
     let manifestPath = path.join(repositoryPath, "UnityProject", "Packages", "manifest.json")
     console.log("linkPackage " + packagePath + " unity " + manifestPath)
@@ -25,24 +51,22 @@ function linkPackage(repository, package) {
     let unityJSON = JSON.parse(fs.readFileSync(manifestPath));
     unityJSON.dependencies[package] = "file:" + path.relative(
         path.join(repositoryPath, "UnityProject", "Packages"), 
-        path.join(__dirname, "..", "..", repository, package)
+        path.join(__dirname, "..", "..", packages[package], package)
     ).replaceAll(path.sep, "/"); 
     console.log(unityJSON)
     fs.writeFileSync(manifestPath, JSON.stringify(unityJSON, null, 2))
 }
 
-function packageDependencies(repository, package) {
-    let repositoryPath = path.join(__dirname, "..", "..", repository)
-    let packagePath = path.join(repositoryPath, package, "package.json")
+function packageDependencies(package) {
+    let repositoryPath = path.join(__dirname, "..", "..", packages[package])
     let manifestPath = path.join(repositoryPath, "UnityProject", "Packages", "manifest.json")
-    console.log("packageDependencies " + packagePath + " unity " + manifestPath)
-    if (!fs.existsSync(packagePath) || !fs.existsSync(manifestPath)) {
+    console.log("Switching to packageDependencies " + manifestPath)
+    if (!fs.existsSync(manifestPath)) {
         console.log("bailing out...")
         return
     }
-    let packageJSON = JSON.parse(fs.readFileSync(packagePath));
     let unityJSON = JSON.parse(fs.readFileSync(manifestPath));
-    for (const [dependency, version] of Object.entries(packageJSON.dependencies)) {
+    for (const dependency of getDependencies(package)) {
         if (!dependency.startsWith("com.sonosthesia")) {
             continue
         }
@@ -53,21 +77,16 @@ function packageDependencies(repository, package) {
     fs.writeFileSync(manifestPath, JSON.stringify(unityJSON, null, 2))
 }
 
-function localDependencies(repository, package) {
-    let repositoryPath = path.join(__dirname, "..", "..", repository)
-    let packagePath = path.join(repositoryPath, package, "package.json")
+function localDependencies(package) {
+    let repositoryPath = path.join(__dirname, "..", "..", packages[package])
     let manifestPath = path.join(repositoryPath, "UnityProject", "Packages", "manifest.json")
-    console.log("localDependencies " + packagePath + " unity " + manifestPath)
-    if (!fs.existsSync(packagePath) || !fs.existsSync(manifestPath)) {
+    console.log("Switching to localDependencies " + manifestPath)
+    if (!fs.existsSync(manifestPath)) {
         console.log("bailing out...")
         return
     }
-    let packageJSON = JSON.parse(fs.readFileSync(packagePath));
     let unityJSON = JSON.parse(fs.readFileSync(manifestPath));
-    for (const [dependency, version] of Object.entries(packageJSON.dependencies)) {
-        if (!dependency.startsWith("com.sonosthesia")) {
-            continue
-        }
+    for (const dependency of getDependencies(package)) {
         console.log("processing " + dependency)
         // tried to use path.posix.relative but things get messy
         unityJSON.dependencies[dependency] = "file:" + path.relative(
@@ -83,11 +102,11 @@ function run() {
     let args = parser(process.argv)
     for (const [package, repository] of Object.entries(packages)) {
         if (args.local) {
-            localDependencies(repository, package);
+            localDependencies(package);
         } else if (args.package) {
-            packageDependencies(repository, package)
+            packageDependencies(package)
         } else if (args.link) {
-            linkPackage(repository, package)
+            linkPackage(package)
         }
     }
 }

@@ -1,0 +1,13 @@
+{
+    "packages" : [
+        "com.sonosthesia.adaptivemidi",
+        "com.sonosthesia.spawn",
+        "com.sonosthesia.midi",
+        "com.sonosthesia.rtmidi",
+        "com.sonosthesia.spawn",
+        "com.sonosthesia.vfx",
+        "com.sonosthesia.link",
+        "com.sonosthesia.flow",
+        "com.sonosthesia.utils"
+    ]
+}
